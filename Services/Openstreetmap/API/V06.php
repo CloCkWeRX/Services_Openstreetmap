@@ -73,7 +73,7 @@ class Services_Openstreetmap_API_V06
      *
      * @return Services_Openstreetmap_Config
      */
-    public function setTransport($transport)
+    public function setTransport(Services_Openstreetmap_Transport $transport)
     {
         $this->transport = $transport;
         return $this;
