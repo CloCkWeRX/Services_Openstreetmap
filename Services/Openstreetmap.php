@@ -78,7 +78,7 @@ class Services_Openstreetmap
         $config = new Services_Openstreetmap_Config();
         $this->setConfig($config);
 
-        $transport = new Services_Openstreetmap_Transport();
+        $transport = new Services_Openstreetmap_Transport_HTTP();
         $transport->setConfig($config);
 
         $this->setTransport($transport);
@@ -472,7 +472,7 @@ class Services_Openstreetmap
         return $this->transport;
     }
 
-    public function setTransport($transport)
+    public function setTransport(Services_Openstreetmap_Transport $transport)
     {
         return $this->transport = $transport;
     }
