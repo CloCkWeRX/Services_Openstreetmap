@@ -68,25 +68,30 @@ class Services_Openstreetmap
     /**
      * constructor; which optionally sets config details.
      *
-     * @param array $config Defaults to empty array if none provided
+     * @param array $configuration Defaults to empty array if none provided
      *
      * @access protected
      * @return void
      */
-    function __construct($config = array())
+    public function __construct($configuration = array())
     {
-        if ($config == array()) {
-            $config = $this->config;
-        }
-        $this->getConfig()->setTransport($this->getTransport());
-        if ($config !== null) {
-            $this->getConfig()->setValue($config);
-        }
-        $version = $this->getConfig()->getValue('api_version');
+        $config = new Services_Openstreetmap_Config();
+        $this->setConfig($config);
+
+        $transport = new Services_Openstreetmap_Transport();
+        $transport->setConfig($config);
+
+        $this->setTransport($transport);
+        $config->setTransport($transport);
+        $config->setValue($configuration);
+
+        $version = $config->getValue('api_version');
+
         $api = "Services_Openstreetmap_API_V" . str_replace('.', '', $version);
+
         $this->api = new $api;
-        $this->api->setTransport($this->getTransport());
-        $this->api->setConfig($this->getConfig());
+        $this->api->setTransport($transport);
+        $this->api->setConfig($config);
     }
 
     /**
@@ -159,10 +164,15 @@ class Services_Openstreetmap
         $response = $this->getTransport()->getResponse($url);
         $xml = simplexml_load_string($response->getBody());
         $obj = $xml->xpath('//place');
-        $attrs = $xml->named[0];
+
+        if (empty($obj)) {
+            throw new Services_Openstreetmap_Exception("Could not locate " . $place);
+        }
+
         $attrs = $obj[0]->attributes();
         $lat = (string) $attrs['lat'];
         $lon = (string) $attrs['lon'];
+
         return compact('lat', 'lon');
     }
 
@@ -436,10 +446,6 @@ class Services_Openstreetmap
      */
     public function getConfig()
     {
-        if ($this->config === null) {
-            $config = new Services_Openstreetmap_Config();
-            $this->config = $config;
-        }
         return $this->config;
     }
 
@@ -452,13 +458,12 @@ class Services_Openstreetmap
      */
     public function getTransport()
     {
-        if ($this->transport == null) {
-            $transport = new Services_Openstreetmap_Transport();
-            $transport->setConfig($this->getConfig());
-            $this->transport = $transport;
-
-        }
         return $this->transport;
+    }
+
+    public function setTransport($transport)
+    {
+        return $this->transport = $transport;
     }
 
     /**
