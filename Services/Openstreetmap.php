@@ -133,8 +133,7 @@ class Services_Openstreetmap
      *
      * @return void
      */
-
-    function get($minLon, $minLat, $maxLon, $maxLat)
+    public function get($minLon, $minLat, $maxLon, $maxLat)
     {
         $config = $this->getConfig();
         $url = $config->getValue('server')
@@ -143,6 +142,8 @@ class Services_Openstreetmap
              . "/map?bbox=$minLat,$minLon,$maxLat,$maxLon";
         $response = $this->getTransport()->getResponse($url);
         $this->xml = $response->getBody();
+
+        return $this->xml;
     }
 
     /**
@@ -159,21 +160,31 @@ class Services_Openstreetmap
      */
     function getCoordsOfPlace($place)
     {
-        $url = 'http://nominatim.openstreetmap.org/search?q='
-             . urlencode($place) . '&limit=1&format=xml';
-        $response = $this->getTransport()->getResponse($url);
-        $xml = simplexml_load_string($response->getBody());
-        $obj = $xml->xpath('//place');
+        $places = $this->getPlace($place);
 
-        if (empty($obj)) {
+        if (empty($places)) {
             throw new Services_Openstreetmap_Exception("Could not locate " . $place);
         }
 
-        $attrs = $obj[0]->attributes();
+        $attrs = $places[0]->attributes();
         $lat = (string) $attrs['lat'];
         $lon = (string) $attrs['lon'];
 
         return compact('lat', 'lon');
+    }
+
+
+    /**
+     * Returns a structured result set for $place
+     */
+    public function getPlace($place) {
+        $url = 'http://nominatim.openstreetmap.org/search?q='
+             . urlencode($place) . '&limit=1&format=xml';
+        $response = $this->getTransport()->getResponse($url);
+        $xml = simplexml_load_string($response->getBody());
+        $places = $xml->xpath('//place');
+
+        return $places;
     }
 
     /**

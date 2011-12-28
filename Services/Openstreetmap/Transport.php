@@ -1,4 +1,8 @@
 <?php
+require_once 'Log.php';
+require_once 'Log/null.php';
+require_once 'HTTP/Request2.php';
+
 /**
  * Transport.php
  * 08-Nov-2011
@@ -49,6 +53,7 @@ class Services_Openstreetmap_Transport
     public function __construct() {
         $this->setConfig(new Services_Openstreetmap_Config());
         $this->setRequest(new HTTP_Request2());
+        $this->setLog(new Log_null());
     }
 
     /**
@@ -62,9 +67,19 @@ class Services_Openstreetmap_Transport
      * @see Services_Openstreetmap::getRequest
      * @see Services_Openstreetmap::setRequest
      */
-    protected $request = null;
+    protected $request;
 
-    protected $config = null;
+    /**
+     * @var Services_Openstreetmap_Config $config
+     */
+    protected $config;
+
+    /**
+     * @var Log $log
+     */
+    protected $log;
+
+
 
     /**
      * Send request to OSM server and return the response.
@@ -83,7 +98,7 @@ class Services_Openstreetmap_Transport
      *                                           happened while conversing with
      *                                           the server.
      */
-    function getResponse(
+    public function getResponse(
         $url,
         $method = HTTP_Request2::METHOD_GET,
         $user = null,
@@ -96,15 +111,9 @@ class Services_Openstreetmap_Transport
         $eMsg = null;
 
         if ($this->getConfig()->getValue('verbose')) {
-            echo $url, "\n";
+            $this->log->debug($url);
         }
-        /*
-        $request = new HTTP_Request2(
-            $url,
-            $method,
-            array('adapter' => $this->getConfig('adapter'))
-        );
-        */
+
         $request = $this->getRequest();
         $request->setUrl($url);
         $request->setMethod($method);
@@ -115,6 +124,7 @@ class Services_Openstreetmap_Transport
             'User-Agent',
             $this->getConfig()->getValue('User-Agent')
         );
+
         if ($user !== null && $password !== null) {
             $request->setAuth($user, $password);
         }
@@ -137,10 +147,8 @@ class Services_Openstreetmap_Transport
             $response = $request->send();
             $code = $response->getStatus();
 
-            if ($this->getConfig()->getValue('verbose')) {
-                var_dump($response->getHeader());
-                var_dump($response->getBody());
-            }
+            $this->log->debug($response->getHeader());
+            $this->log->debug($response->getBody());
 
             if (Services_Openstreetmap_Transport::OK == $code) {
                 return $response;
@@ -155,6 +163,7 @@ class Services_Openstreetmap_Transport
 
             }
         } catch (HTTP_Request2_Exception $e) {
+            $this->log->warning((string)$e);
             throw new Services_Openstreetmap_Exception(
                 $e->getMessage(),
                 $code,
@@ -172,7 +181,7 @@ class Services_Openstreetmap_Transport
      * @access public
      * @return HTTP_Request2
      */
-    function getRequest()
+    public function getRequest()
     {
         return $this->request;
     }
@@ -191,6 +200,11 @@ class Services_Openstreetmap_Transport
     {
         $this->request = $request;
         return $this;
+    }
+
+    public function setLog(Log $log)
+    {
+        $this->log = $log;
     }
 
     /**
@@ -226,6 +240,8 @@ class Services_Openstreetmap_Transport
         try {
             $response = $this->getResponse($url);
         } catch (Services_Openstreetmap_Exception $ex) {
+            $this->log->warning((string)$ex);
+
             $code = $ex->getCode();
             if (Services_Openstreetmap_Transport::NOT_FOUND == $code) {
                 return false;
@@ -266,6 +282,7 @@ class Services_Openstreetmap_Transport
         try {
             $response = $this->getResponse($url);
         } catch (Services_Openstreetmap_Exception $ex) {
+            $this->log->warning((string)$ex);
             switch ($ex->getCode()) {
             case Services_Openstreetmap_Transport::NOT_FOUND:
             case Services_Openstreetmap_Transport::UNAUTHORISED:
@@ -330,6 +347,7 @@ class Services_Openstreetmap_Transport
         try {
             $response = $this->getResponse($url);
         } catch (Services_Openstreetmap_Exception $ex) {
+            $this->log->warning((string)$ex);
             switch ($ex->getCode()) {
             case Services_Openstreetmap_Transport::NOT_FOUND:
             case Services_Openstreetmap_Transport::UNAUTHORISED:
@@ -350,5 +368,3 @@ class Services_Openstreetmap_Transport
         return $obj;
     }
 }
-// vim:set et ts=4 sw=4:
-?>
