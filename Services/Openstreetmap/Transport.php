@@ -46,6 +46,10 @@ class Services_Openstreetmap_Transport
     const GONE = 410;
     /**#@-*/
 
+    public function __construct() {
+        $this->setConfig(new Services_Openstreetmap_Config());
+        $this->setRequest(new HTTP_Request2());
+    }
 
     /**
      * The HTTP_Request2 instance.
@@ -170,9 +174,6 @@ class Services_Openstreetmap_Transport
      */
     function getRequest()
     {
-        if ($this->request === null) {
-            $this->request = new HTTP_Request2();
-        }
         return $this->request;
     }
 
